@@ -21,6 +21,7 @@ type UserRepo interface {
 	Get(ctx context.Context, userID int) (models.User, error)
 	UpdateProfile(ctx context.Context, userID int, user models.User) error
 	DeleteProfile(ctx context.Context, userID int) error
+	ChangePassword(ctx context.Context, userID int, hashPassword string) error
 }
 
 type repoUser struct {
@@ -139,5 +140,20 @@ func (r *repoUser) DeleteProfile(ctx context.Context, userID int) error {
 	if result.RowsAffected() == 0 {
 		return errs.ErrNotFound
 	}
+	return nil
+}
+
+func (r *repoUser) ChangePassword(ctx context.Context, userID int, hashPassowrd string) error {
+	const query = `UPDATE users SET password_hash = $2 WHERE id = $1`
+
+	rows, err := r.db.Exec(ctx, query, userID, hashPassowrd)
+	if err != nil {
+		return fmt.Errorf("error from r.db.Exec %w", err)
+	}
+
+	if rows.RowsAffected() == 0 {
+		return errs.ErrNotFound
+	}
+
 	return nil
 }

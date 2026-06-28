@@ -7,6 +7,7 @@ import (
 	"UserService/internal/service"
 	db2 "UserService/pkg/db"
 	"UserService/pkg/logger"
+	"UserService/pkg/memory"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,11 +37,13 @@ func main() {
 	}
 	defer db.Close()
 
+	myCache := memory.NewMemoryCache()
+
 	repoUser := repository.NewUserRepo(db)
 	repoOrder := repository.NewOrderRepo(db)
 	repoAdmin := repository.NewAdminRepo(db)
 
-	serviceUser := service.NewUserService(repoUser)
+	serviceUser := service.NewUserService(repoUser, repoOrder, myCache)
 	serviceOrder := service.NewOrderService(repoOrder)
 	serviceAdmin := service.NewAdminService(repoAdmin)
 

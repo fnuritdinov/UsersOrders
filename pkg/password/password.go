@@ -15,7 +15,7 @@ func Hash(password string) (string, error) {
 	return string(hash), nil
 }
 
-func Campare(hash, password string) error {
+func Compare(hash, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {

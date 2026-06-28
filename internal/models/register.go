@@ -9,6 +9,7 @@ type RegisterRequest struct {
 	Email    string
 	Password string
 	Role     string
+	OTP      string
 }
 
 func (r *RegisterRequest) Validate() error {

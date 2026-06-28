@@ -45,7 +45,7 @@ func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	log := t.logger.With(zap.String("handler", "Register"))
 
-	id, err := t.serviceUser.Register(r.Context(), models.RegisterRequest{
+	err = t.serviceUser.Register(r.Context(), models.RegisterRequest{
 		Name:     request.Name,
 		Email:    request.Email,
 		Password: request.Password,
@@ -58,9 +58,35 @@ func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"id":      id,
 		"message": "user registered successfully",
 	})
+}
+
+type verifyReq struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
+}
+
+func (t *TaskHandler) Verify(w http.ResponseWriter, r *http.Request) {
+
+	var request verifyReq
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "error from Decode", http.StatusBadRequest)
+		return
+	}
+
+	log := t.logger.With(zap.String("handler", "Verify"))
+
+	id, err := t.serviceUser.Verify(r.Context(), models.RegisterRequest{
+		Email: request.Email,
+		OTP:   request.OTP,
+	})
+	handleError(w, log, err)
+	return
+
+	_ = json.NewEncoder(w).Encode(id)
 }
 
 type loginReq struct {
@@ -173,6 +199,63 @@ func (t *TaskHandler) DeleteProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type changePassReq struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+func (t *TaskHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	var request changePassReq
+
+	userIDStr := r.Context().Value(context2.UserIDKey)
+	userID, ok := userIDStr.(int)
+	if !ok {
+		http.Error(w, "user not found in context", http.StatusBadRequest)
+		return
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "error from Decode", http.StatusBadRequest)
+		return
+	}
+
+	log := t.logger.With(zap.String("handler", "ChangePassword"))
+
+	err = t.serviceUser.ChangePassword(r.Context(), userID, models.Password{
+		OldPassword: request.OldPassword,
+		NewPassword: request.NewPassword,
+	})
+	if err != nil {
+		handleError(w, log, err)
+		return
+	}
+}
+
+func (t *TaskHandler) GetOrdersProfile(w http.ResponseWriter, r *http.Request) {
+	userIDStr := r.Context().Value(context2.UserIDKey)
+	userID, ok := userIDStr.(int)
+	if !ok {
+		http.Error(w, "user not found in context", http.StatusBadRequest)
+		return
+	}
+
+	if userID < 1 {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	log := t.logger.With(zap.String("handler", "GetOrdersProfile"))
+
+	userOrder, err := t.serviceUser.GetOrdersProfile(r.Context(), userID)
+	if err != nil {
+		handleError(w, log, err)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(userOrder)
 }
 
 type orderReq struct {
@@ -376,5 +459,39 @@ func (t *TaskHandler) ChangeRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(user)
+
+}
+
+func (t *TaskHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
+
+	orderID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "error from strconv.Atoi %w", http.StatusBadRequest)
+		return
+	}
+
+	if orderID < 1 {
+		http.Error(w, "invalid orderID", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := r.Context().Value(context2.UserIDKey)
+	userID, ok := userIDStr.(int)
+	if !ok {
+		http.Error(w, "user not found in context", http.StatusBadRequest)
+		return
+	}
+
+	if userID < 1 {
+		http.Error(w, "invalid userID", http.StatusBadRequest)
+	}
+
+	log := t.logger.With(zap.String("handler", "CancelOrder"))
+
+	err = t.serviceOrder.CancelOrder(r.Context(), userID, orderID)
+	if err != nil {
+		handleError(w, log, err)
+		return
+	}
 
 }

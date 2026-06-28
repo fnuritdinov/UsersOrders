@@ -55,3 +55,14 @@ func IsValidPhone(phone string) bool {
 
 	return true
 }
+
+type Password struct {
+	OldPassword string
+	NewPassword string
+	Password    string
+}
+
+type UserOrder struct {
+	User   User
+	Orders Order
+}

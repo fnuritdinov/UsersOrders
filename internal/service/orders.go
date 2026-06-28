@@ -15,6 +15,7 @@ type OrderService interface {
 	GetOrderByID(ctx context.Context, id int) (models.Order, error)
 	UpdateOrder(ctx context.Context, id int, updatedOrder models.Order) error
 	DeleteOrders(ctx context.Context, id int) error
+	CancelOrder(ctx context.Context, userID int, orderID int) error
 }
 
 type serviceOrder struct {
@@ -93,5 +94,23 @@ func (s *serviceOrder) DeleteOrders(ctx context.Context, id int) error {
 		return fmt.Errorf("error from s.Repo.DeleteOrders")
 	}
 
+	return nil
+}
+
+func (s *serviceOrder) CancelOrder(ctx context.Context, userID int, orderID int) error {
+
+	order, err := s.RepoOrder.GetOrder(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if order.Status != "new" {
+		return fmt.Errorf("invalid status for cancel")
+	}
+
+	err = s.RepoOrder.CancelOrder(ctx, orderID)
+	if err != nil {
+		return err
+	}
 	return nil
 }

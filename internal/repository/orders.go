@@ -17,6 +17,8 @@ type OrderRepo interface {
 	GetOrderByID(ctx context.Context, id int) (models.Order, error)
 	UpdateOrder(ctx context.Context, id int, updateOrder models.Order) error
 	DeleteOrders(ctx context.Context, id int) error
+	GetOrder(ctx context.Context, userID int) (models.Order, error)
+	CancelOrder(ctx context.Context, orderID int) error
 }
 
 type repoOrder struct {
@@ -132,6 +134,41 @@ func (r *repoOrder) DeleteOrders(ctx context.Context, id int) error {
 	rows, err := r.db.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("error from delete %w", err)
+	}
+
+	if rows.RowsAffected() == 0 {
+		return errs.ErrNotFound
+	}
+	return nil
+}
+
+func (r *repoOrder) GetOrder(ctx context.Context, userID int) (models.Order, error) {
+	var order models.Order
+	const query = `
+			SELECT id, product, price, status 
+			FROM ORDERS
+			WHERE user_id = $1`
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&order.ID,
+		&order.Product,
+		&order.Price,
+		&order.Status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.Order{}, errs.ErrNotFound
+		}
+		return models.Order{}, err
+	}
+
+	return order, nil
+}
+
+func (r *repoOrder) CancelOrder(ctx context.Context, orderID int) error {
+	const query = `UPDATE orders SET status = 'canceled' WHERE id = %1`
+
+	rows, err := r.db.Exec(ctx, query, orderID)
+	if err != nil {
+		return fmt.Errorf("error from r.db.Exec %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {

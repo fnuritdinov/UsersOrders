@@ -37,8 +37,6 @@ func main() {
 	}
 	defer db.Close()
 
-	fmt.Println("DB PASSWORD =", cfg.DBPassword)
-
 	myCache := memory.NewMemoryCache()
 
 	repoUser := repository.NewUserRepo(db)

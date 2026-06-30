@@ -58,7 +58,7 @@ func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"message": "user registered successfully",
+		"message": "Created",
 	})
 }
 
@@ -83,9 +83,11 @@ func (t *TaskHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		Email: request.Email,
 		OTP:   request.OTP,
 	})
-	handleError(w, log, err)
-	return
-
+	if err != nil {
+		log.Error("verify", zap.Error(err))
+		handleError(w, log, err)
+		return
+	}
 	_ = json.NewEncoder(w).Encode(id)
 }
 

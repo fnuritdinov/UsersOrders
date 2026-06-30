@@ -158,7 +158,7 @@ func (r *repoUser) ChangePassword(ctx context.Context, userID int, hashPassowrd 
 }
 
 func (r *repoUser) SaveRefreshToken(ctx context.Context, request models.HashToken) error {
-	const query = `INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES ($1, $2, $3)`
+	const query = `INSERT INTO refresh_tokens(user_id, token_hash, expires_at) VALUES ($1, $2, $3)`
 
 	rows, err := r.db.Exec(ctx, query, request.UserID, request.TokenHash, request.ExpiresAt)
 	if err != nil {

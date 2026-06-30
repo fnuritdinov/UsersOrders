@@ -10,7 +10,7 @@ func New(handler TaskHandler, mw *Middleware) *http.ServeMux {
 	mux.HandleFunc("POST /auth/login", handler.Login)
 	mux.HandleFunc("POST /auth/logout", handler.LogOut)
 	mux.HandleFunc("POST /auth/refresh", handler.RefreshToken)
-	mux.HandleFunc("POST user/verify", handler.Verify)
+	mux.HandleFunc("POST /user/verify", handler.Verify)
 
 	mux.Handle("GET /users/me", Auth(http.HandlerFunc(handler.Get)))
 	mux.Handle("PUT /users/me", Auth(http.HandlerFunc(handler.UpdateProfile)))

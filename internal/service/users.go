@@ -61,10 +61,11 @@ func (s *serviceUser) Register(ctx context.Context, request models.RegisterReque
 		return err
 	}
 
-	s.myCache.Set(request.Email, models.RegisterRequest{
+	s.myCache.Set(request.Email, CacheMemory{
 		Name:     request.Name,
 		Email:    request.Email,
 		Password: passwordHash,
+		OTP:      "12345",
 		Role:     models.UserRole,
 	}, 5*time.Minute)
 
@@ -88,7 +89,7 @@ func (s *serviceUser) Verify(ctx context.Context, request models.RegisterRequest
 
 	cacheInfo, ok := data.(CacheMemory)
 	if !ok {
-		return 0, errors.New("internal error")
+		return 0, errors.New("data.(CacheMemory)")
 	}
 
 	if cacheInfo.AttemptInfo >= 3 {

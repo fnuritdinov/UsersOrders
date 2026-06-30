@@ -8,9 +8,11 @@ func New(handler TaskHandler, mw *Middleware) *http.ServeMux {
 
 	mux.HandleFunc("POST /auth/register", handler.Register)
 	mux.HandleFunc("POST /auth/login", handler.Login)
-	mux.HandleFunc("user/verify", handler.Verify)
+	mux.HandleFunc("POST /auth/logout", handler.LogOut)
+	mux.HandleFunc("POST /auth/refresh", handler.RefreshToken)
+	mux.HandleFunc("POST user/verify", handler.Verify)
 
-	mux.Handle("POST /users/me", Auth(http.HandlerFunc(handler.Get)))
+	mux.Handle("GET /users/me", Auth(http.HandlerFunc(handler.Get)))
 	mux.Handle("PUT /users/me", Auth(http.HandlerFunc(handler.UpdateProfile)))
 	mux.Handle("DELETE /users/me", Auth(http.HandlerFunc(handler.DeleteProfile)))
 	mux.Handle("PUT /users/change-password", Auth(http.HandlerFunc(handler.ChangePassword)))

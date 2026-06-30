@@ -19,12 +19,12 @@ type OrderService interface {
 }
 
 type serviceOrder struct {
-	RepoOrder repository.OrderRepo
+	repoOrder repository.OrderRepo
 }
 
-func NewOrderService(RepoOrder repository.OrderRepo) OrderService {
+func NewOrderService(repoOrder repository.OrderRepo) OrderService {
 	return &serviceOrder{
-		RepoOrder: RepoOrder,
+		repoOrder: repoOrder,
 	}
 }
 
@@ -34,7 +34,7 @@ func (s *serviceOrder) CreateOrder(ctx context.Context, order models.Order) erro
 		return err
 	}
 
-	err = s.RepoOrder.CreateOrder(ctx, order)
+	err = s.repoOrder.CreateOrder(ctx, order)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (s *serviceOrder) CreateOrder(ctx context.Context, order models.Order) erro
 
 func (s *serviceOrder) GetMyOrders(ctx context.Context, userID int) ([]models.Order, error) {
 
-	orders, err := s.RepoOrder.GetMyOrders(ctx, userID)
+	orders, err := s.repoOrder.GetMyOrders(ctx, userID)
 	if err != nil {
 		return []models.Order{}, fmt.Errorf("error from s.Repo.GetMyOrders %w", err)
 	}
@@ -53,7 +53,7 @@ func (s *serviceOrder) GetMyOrders(ctx context.Context, userID int) ([]models.Or
 }
 
 func (s *serviceOrder) GetOrderByID(ctx context.Context, id int) (models.Order, error) {
-	order, err := s.RepoOrder.GetOrderByID(ctx, id)
+	order, err := s.repoOrder.GetOrderByID(ctx, id)
 	if err != nil {
 		return models.Order{}, fmt.Errorf("error from s.Repo.GetOrderByID %w", err)
 	}
@@ -72,14 +72,12 @@ func (s *serviceOrder) UpdateOrder(ctx context.Context, id int, updatedOrder mod
 	if err != nil {
 		return err
 	}
-	log.Println(updatedOrder.Status)
 
 	if updatedOrder.Price < 1 {
 		return errs.ErrValidate
 	}
-	log.Println(updatedOrder.Price)
 
-	err = s.RepoOrder.UpdateOrder(ctx, id, updatedOrder)
+	err = s.repoOrder.UpdateOrder(ctx, id, updatedOrder)
 	if err != nil {
 		return err
 	}
@@ -89,9 +87,9 @@ func (s *serviceOrder) UpdateOrder(ctx context.Context, id int, updatedOrder mod
 
 func (s *serviceOrder) DeleteOrders(ctx context.Context, id int) error {
 
-	err := s.RepoOrder.DeleteOrders(ctx, id)
+	err := s.repoOrder.DeleteOrders(ctx, id)
 	if err != nil {
-		return fmt.Errorf("error from s.Repo.DeleteOrders")
+		return fmt.Errorf("error from s.Repo.DeleteOrders %w", err)
 	}
 
 	return nil
@@ -99,7 +97,7 @@ func (s *serviceOrder) DeleteOrders(ctx context.Context, id int) error {
 
 func (s *serviceOrder) CancelOrder(ctx context.Context, userID int, orderID int) error {
 
-	order, err := s.RepoOrder.GetOrder(ctx, userID)
+	order, err := s.repoOrder.GetOrder(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -108,7 +106,7 @@ func (s *serviceOrder) CancelOrder(ctx context.Context, userID int, orderID int)
 		return fmt.Errorf("invalid status for cancel")
 	}
 
-	err = s.RepoOrder.CancelOrder(ctx, orderID)
+	err = s.repoOrder.CancelOrder(ctx, orderID)
 	if err != nil {
 		return err
 	}

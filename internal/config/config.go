@@ -9,11 +9,13 @@ import (
 type Config struct {
 	HttpPort string `env:"HTTP_PORT"`
 
-	DBHOST     string `env:"DB_HOST"`
-	DBPORT     int    `env:"DB_PORT"`
-	DBUSER     string `env:"DB_USER"`
-	DBPASSWORD string `env:"DB_PASSWORD"`
-	DBName     string `env:"DB_Name"`
+	DBHost     string `env:"DB_HOST"`
+	DBPort     int    `env:"DB_PORT"`
+	DBUser     string `env:"DB_USER"`
+	DBPassword string `env:"DB_PASSWORD"`
+	DBName     string `env:"DB_NAME"`
+
+	JWTSecret string `env:"JWT_SECRET"`
 }
 
 func New(filePath string) (Config, error) {

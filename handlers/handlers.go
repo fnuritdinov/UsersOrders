@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	context2 "UserService/internal/context"
+	internalCtx "UserService/internal/context"
 	"UserService/internal/models"
 	"UserService/internal/service"
 	"UserService/pkg/logger"
@@ -105,7 +105,7 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	log := t.logger.With(zap.String("handler", "Login"))
 
-	token, err := t.serviceUser.Login(r.Context(), models.LoginRequest{
+	accessToken, refreshToken, err := t.serviceUser.Login(r.Context(), models.LoginRequest{
 		Email:    login.Email,
 		Password: login.Password,
 	})
@@ -115,13 +115,68 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"token": token,
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
 	})
+}
+
+type logOutReq struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+func (t *TaskHandler) LogOut(w http.ResponseWriter, r *http.Request) {
+	var request logOutReq
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "error from Decode", http.StatusBadRequest)
+		return
+	}
+
+	log := t.logger.With(zap.String("handler", "LogOut"))
+
+	err = t.serviceUser.LogOut(r.Context(), models.RefreshAccessTokens{
+		RefreshToken: request.RefreshToken,
+	})
+	if err != nil {
+		handleError(w, log, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+}
+
+type refreshTokenReq struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+func (t *TaskHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var request refreshTokenReq
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "error from Decode", http.StatusBadRequest)
+		return
+	}
+
+	log := t.logger.With(zap.String("handler", "RefreshToken"))
+
+	tokens, err := t.serviceUser.RefreshToken(r.Context(), models.HashToken{
+		TokenHash: request.RefreshToken,
+	})
+	if err != nil {
+		handleError(w, log, err)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(tokens)
+
 }
 
 func (t *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID, ok := userIDStr.(int)
 	if !ok {
 		http.Error(w, "user not exist in context", http.StatusNotFound)
@@ -152,7 +207,7 @@ func (t *TaskHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID, ok := userIDStr.(int)
 	if !ok {
 		http.Error(w, "user not exist in context", http.StatusBadRequest)
@@ -178,7 +233,7 @@ func (t *TaskHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 func (t *TaskHandler) DeleteProfile(w http.ResponseWriter, r *http.Request) {
 
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID, ok := userIDStr.(int)
 	if !ok {
 		http.Error(w, "user not exist in context", http.StatusBadRequest)
@@ -209,7 +264,7 @@ type changePassReq struct {
 func (t *TaskHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var request changePassReq
 
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID, ok := userIDStr.(int)
 	if !ok {
 		http.Error(w, "user not found in context", http.StatusBadRequest)
@@ -235,7 +290,7 @@ func (t *TaskHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *TaskHandler) GetOrdersProfile(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID, ok := userIDStr.(int)
 	if !ok {
 		http.Error(w, "user not found in context", http.StatusBadRequest)
@@ -261,12 +316,19 @@ func (t *TaskHandler) GetOrdersProfile(w http.ResponseWriter, r *http.Request) {
 type orderReq struct {
 	Product string `json:"product"`
 	Price   int    `json:"price"`
-	UserID  int    `json:"userID"`
 	Status  string `json:"status"`
 }
 
 func (t *TaskHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var order orderReq
+
+	userIDValue := r.Context().Value(internalCtx.UserIDKey)
+
+	userID, ok := userIDValue.(int)
+	if !ok {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
 
 	err := json.NewDecoder(r.Body).Decode(&order)
 	if err != nil {
@@ -279,7 +341,7 @@ func (t *TaskHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	err = t.serviceOrder.CreateOrder(r.Context(), models.Order{
 		Product: order.Product,
 		Price:   order.Price,
-		UserID:  order.UserID,
+		UserID:  userID,
 		Status:  order.Status,
 	})
 	if err != nil {
@@ -293,7 +355,7 @@ func (t *TaskHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 func (t *TaskHandler) GetMyOrders(w http.ResponseWriter, r *http.Request) {
 
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID := userIDStr.(int)
 
 	if userID < 1 {
@@ -329,6 +391,7 @@ func (t *TaskHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 	order, err := t.serviceOrder.GetOrderByID(r.Context(), id)
 	if err != nil {
 		handleError(w, log, err)
+		return
 	}
 
 	_ = json.NewEncoder(w).Encode(order)
@@ -475,7 +538,7 @@ func (t *TaskHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userIDStr := r.Context().Value(context2.UserIDKey)
+	userIDStr := r.Context().Value(internalCtx.UserIDKey)
 	userID, ok := userIDStr.(int)
 	if !ok {
 		http.Error(w, "user not found in context", http.StatusBadRequest)
@@ -484,6 +547,7 @@ func (t *TaskHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 
 	if userID < 1 {
 		http.Error(w, "invalid userID", http.StatusBadRequest)
+		return
 	}
 
 	log := t.logger.With(zap.String("handler", "CancelOrder"))

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	context2 "UserService/internal/context"
+	internalCtx "UserService/internal/context"
 	"UserService/internal/models"
 	"UserService/pkg/jwt"
 	"context"
@@ -56,9 +56,7 @@ func (m *Middleware) AuthAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		user.Role = claims.Role
-
-		ctx := context.WithValue(r.Context(), context2.UserIDKey, claims.UserID)
+		ctx := context.WithValue(r.Context(), internalCtx.UserIDKey, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -85,9 +83,9 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), context2.RoleKey, claims.Role)
-		ctx = context.WithValue(ctx, context2.UserIDKey, claims.UserID)
-		ctx = context.WithValue(ctx, context2.EmailKey, claims.Email)
+		ctx := context.WithValue(r.Context(), internalCtx.RoleKey, claims.Role)
+		ctx = context.WithValue(ctx, internalCtx.UserIDKey, claims.UserID)
+		ctx = context.WithValue(ctx, internalCtx.EmailKey, claims.Email)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 

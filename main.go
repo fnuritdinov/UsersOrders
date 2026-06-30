@@ -5,7 +5,7 @@ import (
 	"UserService/internal/config"
 	"UserService/internal/repository"
 	"UserService/internal/service"
-	db2 "UserService/pkg/db"
+	dbConn "UserService/pkg/db"
 	"UserService/pkg/logger"
 	"UserService/pkg/memory"
 	"fmt"
@@ -24,11 +24,11 @@ func main() {
 		log.Fatal("config.New", err)
 	}
 
-	db, err := db2.New(db2.Options{
-		Host:     cfg.DBHOST,
-		Port:     cfg.DBPORT,
-		User:     cfg.DBUSER,
-		Password: cfg.DBPASSWORD,
+	db, err := dbConn.New(dbConn.Options{
+		Host:     cfg.DBHost,
+		Port:     cfg.DBPort,
+		User:     cfg.DBUser,
+		Password: cfg.DBPassword,
 		DBName:   cfg.DBName,
 	})
 	if err != nil {
@@ -36,6 +36,8 @@ func main() {
 		return
 	}
 	defer db.Close()
+
+	fmt.Println("DB PASSWORD =", cfg.DBPassword)
 
 	myCache := memory.NewMemoryCache()
 

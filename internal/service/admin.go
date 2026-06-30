@@ -15,17 +15,17 @@ type AdminService interface {
 }
 
 type serviceAdmin struct {
-	RepoAdmin repository.AdminRepo
+	repoAdmin repository.AdminRepo
 }
 
-func NewAdminService(RepoAdmin repository.AdminRepo) AdminService {
+func NewAdminService(repoAdmin repository.AdminRepo) AdminService {
 	return &serviceAdmin{
-		RepoAdmin: RepoAdmin,
+		repoAdmin: repoAdmin,
 	}
 }
 
 func (s *serviceAdmin) GetAllUsers(ctx context.Context) ([]models.User, error) {
-	users, err := s.RepoAdmin.GetAllUsers(ctx)
+	users, err := s.repoAdmin.GetAllUsers(ctx)
 	if err != nil {
 		return []models.User{}, fmt.Errorf("error from s.RepoAdmin.GetAllUsers")
 	}
@@ -33,9 +33,9 @@ func (s *serviceAdmin) GetAllUsers(ctx context.Context) ([]models.User, error) {
 }
 
 func (s *serviceAdmin) GetAllOrders(ctx context.Context) ([]models.Order, error) {
-	orders, err := s.RepoAdmin.GetAllOrders(ctx)
+	orders, err := s.repoAdmin.GetAllOrders(ctx)
 	if err != nil {
-		return []models.Order{}, nil
+		return nil, nil
 	}
 
 	return orders, nil
@@ -46,7 +46,7 @@ func (s *serviceAdmin) ChangeRole(ctx context.Context, id int, user models.User)
 		return models.User{}, errs.ErrValidate
 	}
 
-	user, err := s.RepoAdmin.ChangeRole(ctx, id, user)
+	user, err := s.repoAdmin.ChangeRole(ctx, id, user)
 	if err != nil {
 		return models.User{}, fmt.Errorf("error from s.RepoAdmin.ChangeRole")
 	}

@@ -2,6 +2,7 @@ package models
 
 import (
 	errs "UserService/pkg/errors"
+	"time"
 )
 
 type RegisterRequest struct {
@@ -29,4 +30,11 @@ func (r *LoginRequest) Validate() error {
 		return errs.ErrValidate
 	}
 	return nil
+}
+
+type HashToken struct {
+	ID        int
+	UserID    int
+	TokenHash string
+	ExpiresAt time.Time
 }

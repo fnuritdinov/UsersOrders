@@ -13,7 +13,6 @@ import (
 
 type UserRepo interface {
 	Register(ctx context.Context, request models.RegisterRequest) (int, error)
-	Login(ctx context.Context, request models.LoginRequest) error
 
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
@@ -22,6 +21,10 @@ type UserRepo interface {
 	UpdateProfile(ctx context.Context, userID int, user models.User) error
 	DeleteProfile(ctx context.Context, userID int) error
 	ChangePassword(ctx context.Context, userID int, hashPassword string) error
+	SaveRefreshToken(ctx context.Context, request models.HashToken) error
+	GetRefreshTokenByHash(ctx context.Context, hash string) (models.HashToken, error)
+	DeleteRefreshTokenByID(ctx context.Context, tokenID int) error
+	DeleteRefreshToken(ctx context.Context, token string) error
 }
 
 type repoUser struct {
@@ -48,10 +51,6 @@ func (r *repoUser) Register(ctx context.Context, request models.RegisterRequest)
 	}
 
 	return id, nil
-}
-
-func (r *repoUser) Login(ctx context.Context, request models.LoginRequest) error {
-	return nil
 }
 
 func (r *repoUser) ExistsByEmail(ctx context.Context, email string) (bool, error) {
@@ -152,6 +151,68 @@ func (r *repoUser) ChangePassword(ctx context.Context, userID int, hashPassowrd 
 	}
 
 	if rows.RowsAffected() == 0 {
+		return errs.ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *repoUser) SaveRefreshToken(ctx context.Context, request models.HashToken) error {
+	const query = `INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES ($1, $2, $3)`
+
+	rows, err := r.db.Exec(ctx, query, request.UserID, request.TokenHash, request.ExpiresAt)
+	if err != nil {
+		return errors.New("error from r.db.Exec")
+	}
+
+	if rows.RowsAffected() == 0 {
+		return errors.New("token was not created")
+	}
+	return nil
+}
+
+func (r *repoUser) GetRefreshTokenByHash(ctx context.Context, hash string) (models.HashToken, error) {
+	var token models.HashToken
+	const query = `SELECT id, user_id, expires_at FROM refresh_tokens WHERE token_hash = $1`
+
+	err := r.db.QueryRow(ctx, query, hash).
+		Scan(&token.ID,
+			&token.UserID,
+			&token.ExpiresAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.HashToken{}, errs.ErrNotFound
+		}
+
+		return models.HashToken{}, fmt.Errorf("error from r.db.QueryRow %w", err)
+	}
+
+	return token, nil
+}
+
+func (r *repoUser) DeleteRefreshTokenByID(ctx context.Context, tokenID int) error {
+	const query = `DELETE FROM refresh_tokens WHERE id = $1`
+
+	result, err := r.db.Exec(ctx, query, tokenID)
+	if err != nil {
+		return fmt.Errorf("error from delete token %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return errs.ErrNotFound
+	}
+	return nil
+}
+
+func (r *repoUser) DeleteRefreshToken(ctx context.Context, token string) error {
+	const query = `DELETE FROM refresh_tokens WHERE token_hash = $1`
+
+	result, err := r.db.Exec(ctx, query, token)
+	if err != nil {
+		return fmt.Errorf("error from r.db.Exec", err)
+	}
+
+	if result.RowsAffected() == 0 {
 		return errs.ErrNotFound
 	}
 

@@ -66,3 +66,8 @@ type UserOrder struct {
 	User   User
 	Orders Order
 }
+
+type RefreshAccessTokens struct {
+	RefreshToken string
+	AccessToken  string
+}

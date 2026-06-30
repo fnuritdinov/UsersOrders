@@ -1,6 +1,10 @@
 package jwt
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -24,7 +28,7 @@ func GenerateToken(userID int, email, role string) (string, error) {
 		Role:   role,
 		RegisteredClaims: gjwt.RegisteredClaims{
 			ExpiresAt: gjwt.NewNumericDate(
-				time.Now().Add(24 * time.Hour)),
+				time.Now().Add(15 * time.Minute)),
 		},
 	}
 
@@ -54,4 +58,20 @@ func ParseToken(tokenString string) (*Claims, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 	return claims, nil
+}
+
+func GenerateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+func HashRefreshToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }

@@ -83,7 +83,7 @@ func (r *repoAdmin) GetAllOrders(ctx context.Context) ([]models.Order, error) {
 		err = rows.Scan(
 			&order.ID,
 			&order.Product,
-			&order.Product,
+			&order.Price,
 			&order.UserID,
 			&order.Status)
 		if err != nil {

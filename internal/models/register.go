@@ -21,8 +21,10 @@ func (r *RegisterRequest) Validate() error {
 }
 
 type LoginRequest struct {
-	Email    string
-	Password string
+	Email     string
+	Password  string
+	IP        string
+	UserAgent string
 }
 
 func (r *LoginRequest) Validate() error {

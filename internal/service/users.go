@@ -16,6 +16,7 @@ import (
 type UserService interface {
 	Register(ctx context.Context, request models.RegisterRequest) error
 	Login(ctx context.Context, login models.LoginRequest) (string, string, error)
+	GetLoginHistory(ctx context.Context, userID int) ([]models.LoginHistoryResponse, error)
 	Verify(ctx context.Context, request models.RegisterRequest) (int, error)
 	RefreshToken(ctx context.Context, require models.HashToken) (models.RefreshAccessTokens, error)
 	LogOut(ctx context.Context, request models.RefreshAccessTokens) error
@@ -151,7 +152,21 @@ func (s *serviceUser) Login(ctx context.Context, request models.LoginRequest) (s
 		ExpiresAt: time.Now().Add(168 * time.Hour),
 	})
 
+	err = s.repoUser.LoginHistory(ctx, user.ID, request.IP, request.UserAgent)
+	if err != nil {
+		return "", "", fmt.Errorf("error from s.repoUser.LoginHistory %w", err)
+	}
+
 	return accessToken, refreshToken, nil
+}
+
+func (s *serviceUser) GetLoginHistory(ctx context.Context, userID int) ([]models.LoginHistoryResponse, error) {
+	loginHistories, err := s.repoUser.GetLoginHistory(ctx, userID)
+	if err != nil {
+		return []models.LoginHistoryResponse{}, err
+	}
+
+	return loginHistories, nil
 }
 
 func (s *serviceUser) Get(ctx context.Context, userID int) (models.User, error) {

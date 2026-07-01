@@ -92,8 +92,10 @@ func (t *TaskHandler) Verify(w http.ResponseWriter, r *http.Request) {
 }
 
 type loginReq struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	IP        string `json:"ip"`
+	UserAgent string `json:"userAgent"`
 }
 
 func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -104,12 +106,16 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
+	ip := GetIP(r)
+	userAgent := r.UserAgent()
 
 	log := t.logger.With(zap.String("handler", "Login"))
 
 	accessToken, refreshToken, err := t.serviceUser.Login(r.Context(), models.LoginRequest{
-		Email:    login.Email,
-		Password: login.Password,
+		Email:     login.Email,
+		Password:  login.Password,
+		IP:        ip,
+		UserAgent: userAgent,
 	})
 	if err != nil {
 		handleError(w, log, err)
@@ -120,6 +126,26 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 	})
+}
+
+func (t *TaskHandler) GetLoginHistory(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(internalCtx.UserIDKey).(int)
+
+	if userID < 1 {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	log := t.logger.With(zap.String("handler", "GetLoginHistory"))
+
+	loginHistories, err := t.serviceUser.GetLoginHistory(r.Context(), userID)
+	if err != nil {
+		handleError(w, log, err)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(loginHistories)
+
 }
 
 type logOutReq struct {
@@ -135,10 +161,13 @@ func (t *TaskHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID := r.Context().Value(internalCtx.UserIDKey).(int)
+
 	log := t.logger.With(zap.String("handler", "LogOut"))
 
 	err = t.serviceUser.LogOut(r.Context(), models.RefreshAccessTokens{
 		RefreshToken: request.RefreshToken,
+		UserID:       userID,
 	})
 	if err != nil {
 		handleError(w, log, err)
@@ -559,5 +588,13 @@ func (t *TaskHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 		handleError(w, log, err)
 		return
 	}
+}
 
+func GetIP(r *http.Request) string {
+	ipForward := r.Header.Get("X-Forwarded-For")
+	if len(ipForward) == 0 {
+		return ""
+	}
+	ipReq := r.RemoteAddr
+	return ipReq
 }

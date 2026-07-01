@@ -13,6 +13,8 @@ import (
 
 type UserRepo interface {
 	Register(ctx context.Context, request models.RegisterRequest) (int, error)
+	LoginHistory(ctx context.Context, userID int, ip, userAgent string) error
+	GetLoginHistory(ctx context.Context, userID int) ([]models.LoginHistoryResponse, error)
 
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
@@ -51,6 +53,54 @@ func (r *repoUser) Register(ctx context.Context, request models.RegisterRequest)
 	}
 
 	return id, nil
+}
+
+func (r *repoUser) LoginHistory(ctx context.Context, userID int, ip, userAgent string) error {
+	const query = `INSERT INTO login_history (user_id, ip, user_agent) VALUES ($1, $2, $3)`
+
+	result, err := r.db.Exec(ctx, query, userID, ip, userAgent)
+	if err != nil {
+		return errors.New("error from r.db.Exec")
+	}
+
+	if result.RowsAffected() == 0 {
+		return errs.ErrNotFound
+	}
+	return nil
+}
+
+func (r *repoUser) GetLoginHistory(ctx context.Context, userID int) ([]models.LoginHistoryResponse, error) {
+	const query = `
+			SELECT ip, user_agent, created_at 
+			FROM login_history
+			WHERE user_id = $1
+			ORDER BY created_at DESC`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var histories []models.LoginHistoryResponse
+
+	for rows.Next() {
+		var history models.LoginHistoryResponse
+
+		if err = rows.Scan(
+			&history.IP,
+			&history.UserAgent,
+			&history.CreatedAt); err != nil {
+			return nil, err
+		}
+		histories = append(histories, history)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return histories, nil
 }
 
 func (r *repoUser) ExistsByEmail(ctx context.Context, email string) (bool, error) {

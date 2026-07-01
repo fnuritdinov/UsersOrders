@@ -25,6 +25,8 @@ func New(handler TaskHandler, mw *Middleware) *http.ServeMux {
 	mux.Handle("DELETE /orders/{id}", Auth(http.HandlerFunc(handler.DeleteOrder)))
 	mux.Handle("PATCH /orders/{id}/cancel", Auth(http.HandlerFunc(handler.CancelOrder)))
 
+	mux.Handle("GET /users/login-history", Auth(http.HandlerFunc(handler.GetLoginHistory)))
+
 	mux.Handle("GET /admin/users", mw.AuthAdmin(http.HandlerFunc(handler.GetAllUsers)))
 	mux.Handle("GET /admin/orders", mw.AuthAdmin(http.HandlerFunc(handler.GetAllOrders)))
 	mux.Handle("PATCH /admin/users/{id}/role", mw.AuthAdmin(http.HandlerFunc(handler.ChangeRole)))

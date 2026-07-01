@@ -70,4 +70,11 @@ type UserOrder struct {
 type RefreshAccessTokens struct {
 	RefreshToken string
 	AccessToken  string
+	UserID       int
+}
+
+type LoginHistoryResponse struct {
+	IP        string `json:"ip"`
+	UserAgent string `json:"userAgent"`
+	CreatedAt time.Time
 }

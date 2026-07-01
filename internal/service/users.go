@@ -305,7 +305,16 @@ func (s *serviceUser) RefreshToken(ctx context.Context, request models.HashToken
 func (s *serviceUser) LogOut(ctx context.Context, request models.RefreshAccessTokens) error {
 	hash := jwt.HashRefreshToken(request.RefreshToken)
 
-	err := s.repoUser.DeleteRefreshToken(ctx, hash)
+	user, err := s.repoUser.GetRefreshTokenByUserID(ctx, request.UserID)
+	if err != nil {
+		return err
+	}
+
+	if hash != user.TokenHash {
+		return errors.New("invalid token")
+	}
+
+	err = s.repoUser.DeleteRefreshToken(ctx, hash)
 	if err != nil {
 		return err
 	}

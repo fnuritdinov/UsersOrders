@@ -27,6 +27,7 @@ type UserRepo interface {
 	GetRefreshTokenByHash(ctx context.Context, hash string) (models.HashToken, error)
 	DeleteRefreshTokenByID(ctx context.Context, tokenID int) error
 	DeleteRefreshToken(ctx context.Context, token string) error
+	GetRefreshTokenByUserID(ctx context.Context, userID int) (models.HashToken, error)
 }
 
 type repoUser struct {
@@ -66,6 +67,7 @@ func (r *repoUser) LoginHistory(ctx context.Context, userID int, ip, userAgent s
 	if result.RowsAffected() == 0 {
 		return errs.ErrNotFound
 	}
+
 	return nil
 }
 
@@ -267,4 +269,18 @@ func (r *repoUser) DeleteRefreshToken(ctx context.Context, token string) error {
 	}
 
 	return nil
+}
+
+func (r *repoUser) GetRefreshTokenByUserID(ctx context.Context, userID int) (models.HashToken, error) {
+	const query = `SELECT token_hash FROM refresh_tokens WHERE user_id = $1`
+
+	var token models.HashToken
+	err := r.db.QueryRow(ctx, query, userID).Scan(&token.TokenHash)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.HashToken{}, errs.ErrNotFound
+		}
+		return models.HashToken{}, errors.New("error from r.db.QueryRow")
+	}
+	return token, nil
 }
